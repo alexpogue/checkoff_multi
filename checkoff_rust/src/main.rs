@@ -1,18 +1,21 @@
-use axum::{
-    extract::{Path, Extension},
-    response::IntoResponse,
-    routing::{get, post, put, delete},
-    Json,
-    Router
+// std networking
+use std::{
+    io::prelude::*,
+    net::{TcpListener, TcpStream},
 };
-use tower_http::cors::CorsLayer;
-use serde::Serialize;
-use serde::Deserialize;
-use sqlx::{MySqlPool, Row};
-use mimalloc::MiMalloc;
+use httparse;
 
-#[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
+// ----------------------------------
+use serde::{Serialize, Deserialize};
+use serde_json::json;
+use sqlx::{MySqlPool, Row};
+use tokio::runtime::Runtime;
+use matchit::Router;
+use std::str;
+// use mimalloc::MiMalloc;
+
+// #[global_allocator]
+// static GLOBAL: MiMalloc = MiMalloc;
 
 #[derive(Serialize)]
 #[derive(Debug)]
@@ -51,21 +54,10 @@ struct TodoItemInsert {
 }
 
 // Define the get_users function as before
-async fn get_todo_items(Extension(pool): Extension<MySqlPool>) -> impl IntoResponse {
-    let rows = match sqlx::query("SELECT id, title, details, isComplete FROM todo_item")
-        .fetch_all(&pool)
-        .await
-    {
-        Ok(rows) => rows,
-        Err(e) => {
-            eprintln!("Application error while getting all todo items: {e}");
-            return (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                "Internal server error",
-            )
-                .into_response()
-        }
-    };
+fn get_todo_items(pool: &MySqlPool) -> String {
+    let rows_fut = sqlx::query("SELECT id, title, details, isComplete FROM todo_item").fetch_all(pool);
+    let rt = Runtime::new().unwrap();
+    let rows = rt.block_on(rows_fut).unwrap();
 
     let todo_items: Vec<TodoItem> = rows
         .into_iter()
@@ -84,43 +76,31 @@ async fn get_todo_items(Extension(pool): Extension<MySqlPool>) -> impl IntoRespo
         data: todo_items,
     };
 
-    (axum::http::StatusCode::OK, Json(todo_items_response)).into_response()
+    json!(todo_items_response).to_string()
 }
 
-async fn create_todo_item(Extension(pool): Extension<MySqlPool>, Json(todo_item): Json<TodoItemInsert>) -> impl IntoResponse {
-    println!("todo_item = {:?}", todo_item);
+fn create_todo_item(pool: &MySqlPool, todo_item: &str) -> String {
+    // parse todo item
+    let todo_item: TodoItemInsert = serde_json::from_str(todo_item).expect("Invalid JSON");
 
-    match sqlx::query("INSERT INTO todo_item (title, details, isComplete) VALUES (?, ?, ?)")
-        .bind(todo_item.title)
-        .bind(todo_item.details)
-        .bind(todo_item.isComplete)
-        .fetch_all(&pool)
-        .await
-    {
-        Err(e) => {
-            eprintln!("Application error: {e}");
-            return (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                "Internal server error",
-            )
-                .into_response()
-        },
-        _ => (),
-    }
-    (axum::http::StatusCode::OK, Json(StatusResponse {status: "success".to_string()})).into_response()
+    let add_item_fut = sqlx::query("INSERT INTO todo_item (title, details, isComplete) VALUES (?, ?, ?)")
+        .bind(&todo_item.title)
+        .bind(&todo_item.details)
+        .bind(&todo_item.isComplete)
+        .fetch_all(pool);
+    let rt = Runtime::new().unwrap();
+    rt.block_on(add_item_fut).unwrap();
+
+    json!(StatusResponse {status: "success".to_string()}).to_string()
 }
 
-async fn get_todo_item_helper(id: i32, pool: &MySqlPool) -> Result<Option<TodoItem>, String> {
-    let row = match sqlx::query("SELECT id, title, details, isComplete FROM todo_item WHERE id=?")
+fn get_todo_item_helper(id: i32, pool: &MySqlPool) -> Result<Option<TodoItem>, String> {
+    let row_fut = sqlx::query("SELECT id, title, details, isComplete FROM todo_item WHERE id=?")
         .bind(id)
-        .fetch_all(pool)
-        .await
-    {
-        Ok(row) => row,
-        Err(e) => {
-            return Err(format!("Database query error. Details: {e}"))
-        },
-    };
+        .fetch_all(pool);
+    let rt = Runtime::new().unwrap();
+    let row = rt.block_on(row_fut).unwrap();
+
     let todo_item_option: Option<TodoItem> = row
         .into_iter()
         .map(|row| {
@@ -137,25 +117,18 @@ async fn get_todo_item_helper(id: i32, pool: &MySqlPool) -> Result<Option<TodoIt
     return Ok(todo_item_option)
 }
 
-async fn get_todo_item(Extension(pool): Extension<MySqlPool>, Path(id): Path<i32>) -> impl IntoResponse {
-    let todo_item = match get_todo_item_helper(id, &pool).await {
+fn get_todo_item(pool: &MySqlPool, id: Option<&str>) -> String {
+    let id: i32 = id.unwrap().parse::<i32>().unwrap(); 
+    let todo_item = match get_todo_item_helper(id, &pool) {
         Ok(Some(todo_item)) => todo_item,
         Ok(None) => {
             eprintln!("Application error: could not find todo item with id {id}");
-            return (
-                axum::http::StatusCode::NOT_FOUND,
-                "Not found",
-            )
-                .into_response()
+            return String::from("Not found")
 
         },
         Err(e) => {
             eprintln!("Application error occurred getting item with id {id}. Error: {e}");
-            return (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                "Internal server error",
-            )
-                .into_response()
+            return String::from("Internal server error");
         }
     };
     println!("todo_item = {:?}", todo_item);
@@ -163,125 +136,127 @@ async fn get_todo_item(Extension(pool): Extension<MySqlPool>, Path(id): Path<i32
         status: "success".to_string(),
         data: todo_item,
     };
-    (axum::http::StatusCode::OK, Json(todo_item_response)).into_response()
+
+    json!(todo_item_response).to_string()
 }
 
 
-async fn update_todo_item(Extension(pool): Extension<MySqlPool>, Path(id): Path<i32>, Json(todo_item): Json<TodoItemInsert>) -> impl IntoResponse {
-    let existing_todo_item = match get_todo_item_helper(id, &pool).await {
+fn update_todo_item(pool: &MySqlPool, id: Option<&str>, todo_item: &str) -> String {
+    let id: i32 = id.unwrap().parse::<i32>().unwrap(); 
+    let todo_item: TodoItemInsert = serde_json::from_str(todo_item).expect("Invalid JSON");
+
+    let existing_todo_item = match get_todo_item_helper(id, &pool) {
         Ok(Some(todo)) => todo,
-        Ok(None) =>
-            return (
-                axum::http::StatusCode::NOT_FOUND,
-                "Not found",
-            )
-                .into_response(),
+        Ok(None) => {
+            panic!("not found");
+        }
         Err(e) => {
             eprintln!("Application error occurred getting item with id {id}. Error: {e}");
-            return (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                "Internal server error",
-            )
-                .into_response()
+            panic!("Internal server error")
         }
-
     };
     println!("existing todo_item = {:?}", existing_todo_item);
 
-    match sqlx::query("UPDATE todo_item SET title = ?, details = ?, isComplete = ? WHERE id = ?")
+    let update_fut =  sqlx::query("UPDATE todo_item SET title = ?, details = ?, isComplete = ? WHERE id = ?")
         .bind(todo_item.title)
         .bind(todo_item.details)
         .bind(todo_item.isComplete)
         .bind(id)
-        .fetch_all(&pool)
-        .await
-    {
-        Err(e) => {
-            eprintln!("Application error: {e}");
-            return (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                "Internal server error",
-            )
-                .into_response()
-        },
-        _ => (),
-    }
+        .fetch_all(pool);
+    let rt = Runtime::new().unwrap();
+    rt.block_on(update_fut).unwrap();
 
-    (axum::http::StatusCode::OK, Json(StatusResponse {status: "success".to_string()})).into_response()
+    json!(StatusResponse {status: "success".to_string()}).to_string()
 }
 
-async fn delete_todo_item(Extension(pool): Extension<MySqlPool>, Path(id): Path<i32>) -> impl IntoResponse {
-    let existing_todo_item = match get_todo_item_helper(id, &pool).await {
+fn delete_todo_item(pool: &MySqlPool, id: Option<&str>) -> String {
+    let id: i32 = id.unwrap().parse::<i32>().unwrap(); 
+    let existing_todo_item = match get_todo_item_helper(id, &pool) {
         Ok(Some(todo)) => todo,
         Ok(None) =>
-            return (
-                axum::http::StatusCode::NOT_FOUND,
-                "Not found",
-            )
-                .into_response(),
+            panic!("Not found"),
         Err(e) => {
             eprintln!("Application error occurred getting item with id {id}. Error: {e}");
-            return (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                "Internal server error",
-            )
-                .into_response()
+            panic!("Internal server error")
         }
 
     };
     println!("deleting todo_item = {:?}", existing_todo_item);
 
-    match sqlx::query("DELETE FROM todo_item WHERE id = ?")
+    let delete_fut = sqlx::query("DELETE FROM todo_item WHERE id = ?")
         .bind(id)
-        .fetch_all(&pool)
-        .await
-    {
-        Ok(rows) => rows,
-        Err(_) => {
-            return (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                "Internal server error",
-            )
-                .into_response()
-        }
-    };
+        .fetch_all(pool);
+    let rt = Runtime::new().unwrap();
+    rt.block_on(delete_fut).unwrap();
 
-
-    (axum::http::StatusCode::OK, Json(StatusResponse {status: "success".to_string()})).into_response()
+    json!(StatusResponse {status: "success".to_string()}).to_string()
 }
 
-
-#[tokio::main]
-async fn main() {
+fn main() {
     // Set up the database connection pool
-    let database_url = "mysql://root:strong_password@checkoff-mysql:3306/checkoff";
-    //let database_url = "mysql://root:strong_password@127.0.0.1:3307/checkoff";
-    let pool = MySqlPool::connect(&database_url)
-        .await
+    // docker database
+    // let database_url = "mysql://root:strong_password@checkoff-mysql:3306/checkoff";
+    // local database
+    let database_url = "mysql://root:strong_password@127.0.0.1:3307/checkoff";
+    let rt = Runtime::new().unwrap();
+    // connect to sql database
+    let pool = rt.block_on(MySqlPool::connect(&database_url))
         .expect("Could not connect to the database");
 
-    // Create the Axum router
-    let app = Router::new()
-        .route("/todo-item", post(create_todo_item))
-        .route("/todo-item", get(get_todo_items))
-        .route("/todo-item/{id}", get(get_todo_item))
-        .route("/todo-item/{id}", put(update_todo_item))
-        .route("/todo-item/{id}", delete(delete_todo_item))
-        .layer(Extension(pool))
-        .layer(CorsLayer::permissive());
+    // tcp server
+    let listener = TcpListener::bind("0.0.0.0:3000").unwrap();
 
-    let port=3000;
+    for stream in listener.incoming() {
+        let stream = stream.unwrap();
+        handle_connection(stream, &pool).unwrap();
+    }
+}
 
-    // Run the Axum server
-    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{:?}", port)).await.unwrap();
+fn handle_connection(mut stream: TcpStream,pool: &MySqlPool) -> Result<(), Box<dyn std::error::Error>> {
+    // read request into fixed size buffer
+    let mut buf = [0; 1024];
+    let bytes_read = stream.read(&mut buf).unwrap(); //FUTURE check full stream was read
 
-    println!("Listening on port {:?}", port);
+    // parse headers
+    let mut headers = [httparse::EMPTY_HEADER; 16];
+    let mut request = httparse::Request::new(&mut headers);    
+    let header_len = match request.parse(&buf[..bytes_read])? {
+        httparse::Status::Complete(l) => l,
+        httparse::Status::Partial => return Err("Incomplete HTTP request".into()),
+    };
 
-    axum::serve(listener, app).await.unwrap();
-    /*
-    Server::bind(&"0.0.0.0:3000".parse().unwrap())
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
-        */
+    let path = request.path.unwrap_or("");
+    let method = request.method.unwrap_or("");
+
+    // Extract the body, which is the data after the headers.
+    let body_bytes = &buf[header_len..bytes_read];
+    let body = str::from_utf8(body_bytes).unwrap_or("");
+
+    // Create the router
+    //future: do not re-construct router for each request
+    let mut router = Router::new();
+    router.insert("/todo-item", "/todo_item")?;
+    router.insert("/todo-item/{id}", "/todo-item/{id}")?;
+    let matched = router.at(path)?;
+    let matched_route = *matched.value;
+    dbg!(matched_route);
+    dbg!(method);
+    
+    
+    let response = match (matched_route, method) {
+        ("/todo_item", "POST") => create_todo_item(&pool, body),
+        ("/todo_item", "GET") => get_todo_items(&pool),
+        ("/todo-item/{id}", "GET") => get_todo_item(&pool, matched.params.get("id")),
+        ("/todo-item/{id}", "PUT") => update_todo_item(&pool, matched.params.get("id"), body),
+        ("/todo-item/{id}", "DELETE") => delete_todo_item(&pool, matched.params.get("id")),
+
+        _ => todo!("no matching route"),
+    };
+
+    let response_status =  "HTTP/1.1 200 OK";
+    let response_length = response.len();
+    let response = format!("{response_status}\r\nContent-Length: {response_length}\r\n\r\n{response}");
+    stream.write_all(response.as_bytes()).unwrap();
+    
+    Ok(())
 }

@@ -15,15 +15,15 @@ COPY . /app
 RUN cargo build --target x86_64-unknown-linux-musl --release
 
 # compress with UPX
-FROM gruebel/upx:latest as compress
-COPY --from=build /app/target/x86_64-unknown-linux-musl/release/checkoff_rust /checkoff_rust_original
-RUN upx --best --lzma -o /checkoff_rust /checkoff_rust_original
+# FROM gruebel/upx:latest as compress
+# COPY --from=build /app/target/x86_64-unknown-linux-musl/release/checkoff_rust /checkoff_rust_original
+# RUN upx --best --lzma -o /checkoff_rust /checkoff_rust_original
 
 # Distroless execution image
 FROM scratch
 
 # copy build results 
-COPY --from=compress /checkoff_rust /
+COPY --from=build /app/target/x86_64-unknown-linux-musl/release/checkoff_rust /
 
 # run
 CMD ["./checkoff_rust"]
