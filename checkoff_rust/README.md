@@ -24,7 +24,8 @@ create table todo_item (
   details varchar(200) not null,
   isComplete bool not null
 );
-``` # create table with fields
+```
+ # create table with fields
 `describe table todo_item;` # describe the table schema
 
 ```
@@ -32,8 +33,11 @@ insert into todo_item (id, title, details, isComplete)
 values (1, "Do the dishes", "Scrub them squeaky clean", false),
   (2, "Take out the trash", "Feels good to be clean", true);
 ```
+
+```
 `quit` # quit mysql
 `ctrl-D` # leave docker shell
+```
 
 ## Running
 

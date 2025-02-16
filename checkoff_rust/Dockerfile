@@ -10,8 +10,6 @@ FROM rust:latest AS build_no_copy
 # no-op
 
 FROM rust:latest AS build_copy
-COPY certs/ certs/
-ONBUILD RUN cat certs/ZscalerRootCertificate-2048-SHA256.pem >> /usr/lib/ssl/certs/ca-certificates.crt
 
 FROM build_${BUILD_ENV} AS build_intermediate
 # no-op, collect copy vs no_copy builds
@@ -49,14 +47,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Compile dependencies before main binary, see https://medium.com/@dillen.dev/rusty-docker-never-again-fe24e262ab18
 RUN cargo init
 COPY Cargo.toml Cargo.lock ./
-RUN --mount=type=cache,target=${SCCACHE_DIR},sharing=locked cargo fetch && \
-  cargo build --release && \
-  rm src/*.rs
+
+# Fetch dependencies and build them without BuildKit
+RUN cargo fetch && \
+    cargo build --release && \
+    rm src/*.rs
 
 COPY src src
 
-RUN --mount=type=cache,target=${SCCACHE_DIR},sharing=locked touch src/main.rs && \
-  cargo build --release
+# Build the main binary
+RUN touch src/main.rs && \
+    cargo build --release
 
 FROM build AS build_upx
 WORKDIR /app
