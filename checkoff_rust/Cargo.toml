@@ -9,6 +9,11 @@ matchit = "0.8.6"
 miniserde = "0.1"
 mysql = {version="26", features = ["minimal-rust"]}
 mimalloc = { version = "0.1.43", features = ["secure"] }
+thiserror = "2.0"
+
+[dev-dependencies]
+# serde_json = "1.0"
+# reqwest={ version = "0.12", features = ["blocking"]}
 
 [profile.release]
 strip = true
