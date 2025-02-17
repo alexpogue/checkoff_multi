@@ -29,9 +29,7 @@ int handle_post_json(char *post_data, char *response, size_t response_size) {
   return 1;
 }
 
-int main(int argc,
-	 char ** argv) {
-  Server_Daemon *d;
+int main(int argc, char **argv) {
   if (argc != 2) {
     printf("%s PORT\n",
 	   argv[0]);
@@ -39,14 +37,14 @@ int main(int argc,
   }
   char *port_str = argv[1];
 
-  d = server_start_daemon(atoi(port_str));
+  Server_Daemon *d = server_start_daemon(atoi(port_str));
   if (d == NULL)
     return 1;
 
   server_register_endpoint(METHOD_POST, "/json", handle_post_json, 0);
 
   printf("Server listening on port %s\n", port_str);
-  (void) getc (stdin);
+  getc(stdin);
   server_stop_daemon(d);
   return 0;
 }
