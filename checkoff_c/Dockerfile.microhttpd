@@ -24,7 +24,7 @@ RUN wget --no-check-certificate https://github.com/zserge/jsmn/archive/refs/tags
   && tar zxvf v1.1.0.tar.gz \
   && cp jsmn-1.1.0/jsmn.h .
 
-COPY ./src_mhd ./src
+COPY ./src ./src
 RUN cp jsmn.h src/
 
 RUN gcc -s -Os -static -o main src/main.c src/json.c src/server.c -lmicrohttpd
