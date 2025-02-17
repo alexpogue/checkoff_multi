@@ -103,11 +103,11 @@ RUN wget --no-check-certificate https://github.com/babelouest/ulfius/archive/ref
 
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib"
 
-COPY main.c .
-#RUN gcc -static -static-libgcc -static-libstdc++ -o main main.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius
-RUN gcc -Wl,-verbose=99 -o main main.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius
-#RUN gcc -Wl,-verbose=99 -o main main.c -lulfius
-#RUN musl-gcc -Wl,-verbose=99 -static -static-libgcc -static-libstdc++ -o main main.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius
-#RUN gcc -Wl,-Bstatic -o main main.c -L/usr/local/lib -lulfius -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lgcc_s
+COPY main_ulfius.c .
+#RUN gcc -static -static-libgcc -static-libstdc++ -o main main_ulfius.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius
+RUN gcc -Wl,-verbose=99 -o main main_ulfius.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius
+#RUN gcc -Wl,-verbose=99 -o main main_ulfius.c -lulfius
+#RUN musl-gcc -Wl,-verbose=99 -static -static-libgcc -static-libstdc++ -o main main_ulfius.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius
+#RUN gcc -Wl,-Bstatic -o main main_ulfius.c -L/usr/local/lib -lulfius -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lgcc_s
 #CMD ["./main"]
 CMD ["sleep", "1d"]

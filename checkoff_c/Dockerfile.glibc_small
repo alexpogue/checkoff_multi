@@ -87,18 +87,18 @@ ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib"
 #  && rm -rf /var/lib/apt/lists/* \
 #  && apt-get autoremove -y && apt-get clean
 
-COPY main.c .
+COPY main_ulfius.c .
 
-#RUN gcc -static -static-libgcc -static-libstdc++ -o main main.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius
+#RUN gcc -static -static-libgcc -static-libstdc++ -o main main_ulfius.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius
 
 RUN apt-get update && apt-get install -y --no-install-recommends gcc \
-  && gcc -Wl,-verbose=99 -o main main.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius -ljansson \
+  && gcc -Wl,-verbose=99 -o main main_ulfius.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius -ljansson \
   && apt-get remove --purge -y gcc \
   && rm -rf /var/lib/apt/lists/* \
   && apt-get autoremove -y && apt-get clean
 
-#RUN gcc -Wl,-verbose=99 -o main main.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius -ljansson
-#RUN musl-gcc -Wl,-verbose=99 -static -static-libgcc -static-libstdc++ -o main main.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius
-#RUN gcc -Wl,-Bstatic -o main main.c -L/usr/local/lib -lulfius -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lgcc_s
+#RUN gcc -Wl,-verbose=99 -o main main_ulfius.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius -ljansson
+#RUN musl-gcc -Wl,-verbose=99 -static -static-libgcc -static-libstdc++ -o main main_ulfius.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius
+#RUN gcc -Wl,-Bstatic -o main main_ulfius.c -L/usr/local/lib -lulfius -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lgcc_s
 CMD ["./main"]
 #CMD ["sleep", "1d"]

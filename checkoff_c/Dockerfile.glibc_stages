@@ -96,13 +96,13 @@ ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib"
 #  && rm -rf /var/lib/apt/lists/* \
 #  && apt-get autoremove -y && apt-get clean
 
-COPY main.c .
+COPY main_ulfius.c .
 
-#RUN gcc -static -static-libgcc -static-libstdc++ -o main main.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius
+#RUN gcc -static -static-libgcc -static-libstdc++ -o main main_ulfius.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius
 
-#RUN gcc -Wl,-verbose=99 -static -o main main.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius -ljansson
-#RUN gcc -Xlinker --verbose -o main main.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius -ljansson
-RUN gcc -Xlinker --verbose -o main main.c -lulfius -ljansson
+#RUN gcc -Wl,-verbose=99 -static -o main main_ulfius.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius -ljansson
+#RUN gcc -Xlinker --verbose -o main main_ulfius.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius -ljansson
+RUN gcc -Xlinker --verbose -o main main_ulfius.c -lulfius -ljansson
 
 from debian:bookworm-slim as final
 #from gcr.io/distroless/cc as final
@@ -114,8 +114,8 @@ COPY --from=build_intermediate /app/main .
 COPY --from=build_intermediate /app/usr_local_lib_files/ /usr/local/lib/
 COPY --from=build_intermediate /app/usr_lib_x86_64-linux-gnu_files /usr/lib/x86_64-linux-gnu/
 
-#RUN gcc -Wl,-verbose=99 -o main main.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius -ljansson
-#RUN musl-gcc -Wl,-verbose=99 -static -static-libgcc -static-libstdc++ -o main main.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius
-#RUN gcc -Wl,-Bstatic -o main main.c -L/usr/local/lib -lulfius -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lgcc_s
+#RUN gcc -Wl,-verbose=99 -o main main_ulfius.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius -ljansson
+#RUN musl-gcc -Wl,-verbose=99 -static -static-libgcc -static-libstdc++ -o main main_ulfius.c -L/usr/local/lib -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lulfius
+#RUN gcc -Wl,-Bstatic -o main main_ulfius.c -L/usr/local/lib -lulfius -L/usr/lib/gcc/x86_64-linux-gnu/12/ -lgcc_s
 CMD ["./main"]
 #CMD ["sleep", "1d"]

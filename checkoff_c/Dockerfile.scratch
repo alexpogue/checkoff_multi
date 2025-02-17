@@ -87,9 +87,9 @@ RUN wget --no-check-certificate https://ftp.gnu.org/gnu/nettle/nettle-3.10.1.tar
   && make install \
   && make clean
 
-COPY main.c .
+COPY main_ulfius.c .
 
-RUN gcc -static -o main main.c -L/usr/local/lib -lulfius -ljansson -lyder -lorcania -lmicrohttpd -lgnutls -ltasn1 -lintl -lhogweed -lnettle -lgmp -lunistring -lz
+RUN gcc -static -o main main_ulfius.c -L/usr/local/lib -lulfius -ljansson -lyder -lorcania -lmicrohttpd -lgnutls -ltasn1 -lintl -lhogweed -lnettle -lgmp -lunistring -lz
 
 CMD ["./main"]
 
