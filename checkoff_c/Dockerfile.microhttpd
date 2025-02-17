@@ -27,7 +27,7 @@ RUN wget --no-check-certificate https://github.com/zserge/jsmn/archive/refs/tags
 COPY ./src_mhd ./src
 RUN cp jsmn.h src/
 
-RUN gcc -s -Os -static -o main src/main.c src/json.c -lmicrohttpd
+RUN gcc -s -Os -static -o main src/main.c src/json.c src/server.c -lmicrohttpd
 
 CMD ["./main"]
 
