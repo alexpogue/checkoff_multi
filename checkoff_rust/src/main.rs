@@ -8,10 +8,11 @@ use httparse;
 // ----------------------------------
 use serde::{Serialize, Deserialize};
 use serde_json::json;
-use sqlx::{MySqlPool, Row};
-use tokio::runtime::Runtime;
+use mysql::*;
+use mysql::prelude::*;
 use matchit::Router;
 use std::str;
+//TODO enable
 // use mimalloc::MiMalloc;
 
 // #[global_allocator]
@@ -54,22 +55,13 @@ struct TodoItemInsert {
 }
 
 // Define the get_users function as before
-fn get_todo_items(pool: &MySqlPool) -> String {
-    let rows_fut = sqlx::query("SELECT id, title, details, isComplete FROM todo_item").fetch_all(pool);
-    let rt = Runtime::new().unwrap();
-    let rows = rt.block_on(rows_fut).unwrap();
-
-    let todo_items: Vec<TodoItem> = rows
-        .into_iter()
-        .map(|row| {
-            TodoItem {
-                id: row.try_get::<i32, _>("id").unwrap_or_default(),
-                title: row.try_get::<String, _>("title").unwrap_or_default(),
-                details: row.try_get::<String, _>("details").unwrap_or_default(),
-                isComplete: row.try_get::<bool, _>("isComplete").unwrap_or_default(),
-            }
-        })
-        .collect();
+fn get_todo_items(pool: &mut PooledConn) -> String {
+    #[allow(non_snake_case)]
+    let todo_items = pool.query_map("SELECT id, title, details, isComplete FROM todo_item",
+        |(id, title, details, isComplete) | {
+            TodoItem {id, title, details, isComplete}
+        }
+    ).unwrap();
 
     let todo_items_response = MultipleTodoItemsResponse {
         status: "success".to_string(),
@@ -79,47 +71,30 @@ fn get_todo_items(pool: &MySqlPool) -> String {
     json!(todo_items_response).to_string()
 }
 
-fn create_todo_item(pool: &MySqlPool, todo_item: &str) -> String {
+fn create_todo_item(pool: &mut PooledConn, todo_item: &str) -> String {
     // parse todo item
     let todo_item: TodoItemInsert = serde_json::from_str(todo_item).expect("Invalid JSON");
 
-    let add_item_fut = sqlx::query("INSERT INTO todo_item (title, details, isComplete) VALUES (?, ?, ?)")
-        .bind(&todo_item.title)
-        .bind(&todo_item.details)
-        .bind(&todo_item.isComplete)
-        .fetch_all(pool);
-    let rt = Runtime::new().unwrap();
-    rt.block_on(add_item_fut).unwrap();
+    pool.exec_drop(r"INSERT INTO todo_item (title, details, isComplete) VALUES (?, ?, ?)",
+        (&todo_item.title, &todo_item.details, &todo_item.isComplete),
+    ).unwrap();
 
     json!(StatusResponse {status: "success".to_string()}).to_string()
 }
 
-fn get_todo_item_helper(id: i32, pool: &MySqlPool) -> Result<Option<TodoItem>, String> {
-    let row_fut = sqlx::query("SELECT id, title, details, isComplete FROM todo_item WHERE id=?")
-        .bind(id)
-        .fetch_all(pool);
-    let rt = Runtime::new().unwrap();
-    let row = rt.block_on(row_fut).unwrap();
-
-    let todo_item_option: Option<TodoItem> = row
-        .into_iter()
-        .map(|row| {
-            TodoItem {
-                id: row.try_get::<i32, _>("id").unwrap_or_default(),
-                title: row.try_get::<String, _>("title").unwrap_or_default(),
-                details: row.try_get::<String, _>("details").unwrap_or_default(),
-                isComplete: row.try_get::<bool, _>("isComplete").unwrap_or_default(),
-            }
-        })
-        .collect::<Vec<TodoItem>>()
-        .pop();
+fn get_todo_item_helper(id: i32, pool: &mut PooledConn) -> Result<Option<TodoItem>, String> {
+    let result = pool.exec_first("SELECT id, title, details, isComplete FROM todo_item WHERE id=?",(id,)).unwrap();
+    #[allow(non_snake_case)]
+    let todo_item_option = result.map(|(id, title, details, isComplete) | {
+        TodoItem{ id, title, details, isComplete}
+    });
 
     return Ok(todo_item_option)
 }
 
-fn get_todo_item(pool: &MySqlPool, id: Option<&str>) -> String {
+fn get_todo_item(pool: &mut PooledConn, id: Option<&str>) -> String {
     let id: i32 = id.unwrap().parse::<i32>().unwrap(); 
-    let todo_item = match get_todo_item_helper(id, &pool) {
+    let todo_item = match get_todo_item_helper(id, pool) {
         Ok(Some(todo_item)) => todo_item,
         Ok(None) => {
             eprintln!("Application error: could not find todo item with id {id}");
@@ -141,11 +116,11 @@ fn get_todo_item(pool: &MySqlPool, id: Option<&str>) -> String {
 }
 
 
-fn update_todo_item(pool: &MySqlPool, id: Option<&str>, todo_item: &str) -> String {
+fn update_todo_item(pool: &mut PooledConn, id: Option<&str>, todo_item: &str) -> String {
     let id: i32 = id.unwrap().parse::<i32>().unwrap(); 
     let todo_item: TodoItemInsert = serde_json::from_str(todo_item).expect("Invalid JSON");
 
-    let existing_todo_item = match get_todo_item_helper(id, &pool) {
+    let existing_todo_item = match get_todo_item_helper(id, pool) {
         Ok(Some(todo)) => todo,
         Ok(None) => {
             panic!("not found");
@@ -157,21 +132,16 @@ fn update_todo_item(pool: &MySqlPool, id: Option<&str>, todo_item: &str) -> Stri
     };
     println!("existing todo_item = {:?}", existing_todo_item);
 
-    let update_fut =  sqlx::query("UPDATE todo_item SET title = ?, details = ?, isComplete = ? WHERE id = ?")
-        .bind(todo_item.title)
-        .bind(todo_item.details)
-        .bind(todo_item.isComplete)
-        .bind(id)
-        .fetch_all(pool);
-    let rt = Runtime::new().unwrap();
-    rt.block_on(update_fut).unwrap();
+    pool.exec_drop(r"UPDATE todo_item SET title = ?, details = ?, isComplete = ? WHERE id = ?",
+        (todo_item.title, todo_item.details,&todo_item.isComplete, id),
+    ).unwrap();
 
     json!(StatusResponse {status: "success".to_string()}).to_string()
 }
 
-fn delete_todo_item(pool: &MySqlPool, id: Option<&str>) -> String {
+fn delete_todo_item(pool: &mut PooledConn, id: Option<&str>) -> String {
     let id: i32 = id.unwrap().parse::<i32>().unwrap(); 
-    let existing_todo_item = match get_todo_item_helper(id, &pool) {
+    let existing_todo_item = match get_todo_item_helper(id, pool) {
         Ok(Some(todo)) => todo,
         Ok(None) =>
             panic!("Not found"),
@@ -183,11 +153,7 @@ fn delete_todo_item(pool: &MySqlPool, id: Option<&str>) -> String {
     };
     println!("deleting todo_item = {:?}", existing_todo_item);
 
-    let delete_fut = sqlx::query("DELETE FROM todo_item WHERE id = ?")
-        .bind(id)
-        .fetch_all(pool);
-    let rt = Runtime::new().unwrap();
-    rt.block_on(delete_fut).unwrap();
+    pool.exec_drop(r"DELETE FROM todo_item WHERE id = ?", (id,)).unwrap();
 
     json!(StatusResponse {status: "success".to_string()}).to_string()
 }
@@ -198,21 +164,22 @@ fn main() {
     // let database_url = "mysql://root:strong_password@checkoff-mysql:3306/checkoff";
     // local database
     let database_url = "mysql://root:strong_password@127.0.0.1:3307/checkoff";
-    let rt = Runtime::new().unwrap();
     // connect to sql database
-    let pool = rt.block_on(MySqlPool::connect(&database_url))
+    let pool = Pool::new(database_url)
         .expect("Could not connect to the database");
+    //TODO rename pool to conn
+    let mut pooled_conn = pool.get_conn().unwrap();
 
     // tcp server
     let listener = TcpListener::bind("0.0.0.0:3000").unwrap();
 
     for stream in listener.incoming() {
         let stream = stream.unwrap();
-        handle_connection(stream, &pool).unwrap();
+        handle_connection(stream, &mut pooled_conn).unwrap();
     }
 }
 
-fn handle_connection(mut stream: TcpStream,pool: &MySqlPool) -> Result<(), Box<dyn std::error::Error>> {
+fn handle_connection(mut stream: TcpStream, pool: &mut PooledConn) -> Result<(), Box<dyn std::error::Error>> {
     // read request into fixed size buffer
     let mut buf = [0; 1024];
     let bytes_read = stream.read(&mut buf).unwrap(); //FUTURE check full stream was read
@@ -244,11 +211,11 @@ fn handle_connection(mut stream: TcpStream,pool: &MySqlPool) -> Result<(), Box<d
     
     
     let response = match (matched_route, method) {
-        ("/todo_item", "POST") => create_todo_item(&pool, body),
-        ("/todo_item", "GET") => get_todo_items(&pool),
-        ("/todo-item/{id}", "GET") => get_todo_item(&pool, matched.params.get("id")),
-        ("/todo-item/{id}", "PUT") => update_todo_item(&pool, matched.params.get("id"), body),
-        ("/todo-item/{id}", "DELETE") => delete_todo_item(&pool, matched.params.get("id")),
+        ("/todo_item", "POST") => create_todo_item(pool, body),
+        ("/todo_item", "GET") => get_todo_items(pool),
+        ("/todo-item/{id}", "GET") => get_todo_item(pool, matched.params.get("id")),
+        ("/todo-item/{id}", "PUT") => update_todo_item(pool, matched.params.get("id"), body),
+        ("/todo-item/{id}", "DELETE") => delete_todo_item(pool, matched.params.get("id")),
 
         _ => todo!("no matching route"),
     };
