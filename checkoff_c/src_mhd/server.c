@@ -110,14 +110,10 @@ enum MHD_Result dispatch_request(void * cls,
     return MHD_YES;
   }
   else {
-    if (isPostRequest) {
-      printf("received POST data: %s\n", con_info->post_data);
-    }
-
     char response_str[RESPONSE_SIZE];
-    endpoint.handler_function(con_info->post_data, response_str, RESPONSE_SIZE);
 
-    printf("response_str = %s\n", response_str);
+    printf("Handling %s %s\n", method, url);
+    endpoint.handler_function(con_info->post_data, response_str, RESPONSE_SIZE);
 
     struct MHD_Response *response;
     if (endpoint.response_requires_free) {

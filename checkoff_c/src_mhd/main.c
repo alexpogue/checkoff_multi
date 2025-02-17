@@ -6,10 +6,7 @@
 #include "server.h"
 
 int handle_post_json(char *post_data, char *response, size_t response_size) {
-  printf("received POST data: %s\n", post_data);
-
   int value_length = json_get_key_value("name", post_data, NULL, 0);
-  printf("value_length = %d\n", value_length);
 
   if (value_length == -1) {
     printf("did not find key 'name'\n");
@@ -29,7 +26,6 @@ int handle_post_json(char *post_data, char *response, size_t response_size) {
     free(value_str);
     value_str = NULL;
   }
-  printf("response = %s\n", response);
   return 1;
 }
 
