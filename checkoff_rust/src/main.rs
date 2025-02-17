@@ -6,20 +6,18 @@ use std::{
 use httparse;
 
 // ----------------------------------
-use serde::{Serialize, Deserialize};
-use serde_json::json;
+use miniserde::{Serialize, Deserialize, json};
 use mysql::*;
 use mysql::prelude::*;
 use matchit::Router;
 use std::str;
-//TODO enable
-// use mimalloc::MiMalloc;
+use mimalloc::MiMalloc;
 
-// #[global_allocator]
-// static GLOBAL: MiMalloc = MiMalloc;
+// enable miMalloc memory allocator globally
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
-#[derive(Serialize)]
-#[derive(Debug)]
+#[derive(Serialize, Debug)]
 #[allow(non_snake_case)]
 struct TodoItem {
     id: i32,
@@ -45,8 +43,7 @@ struct StatusResponse {
     status: String,
 }
 
-#[derive(Deserialize)]
-#[derive(Debug)]
+#[derive(Deserialize, Debug)]
 #[allow(non_snake_case)]
 struct TodoItemInsert {
     title: String,
@@ -68,18 +65,18 @@ fn get_todo_items(pool: &mut PooledConn) -> String {
         data: todo_items,
     };
 
-    json!(todo_items_response).to_string()
+    json::to_string(&todo_items_response)
 }
 
 fn create_todo_item(pool: &mut PooledConn, todo_item: &str) -> String {
     // parse todo item
-    let todo_item: TodoItemInsert = serde_json::from_str(todo_item).expect("Invalid JSON");
+    let todo_item: TodoItemInsert = json::from_str(todo_item).expect("Invalid JSON");
 
     pool.exec_drop(r"INSERT INTO todo_item (title, details, isComplete) VALUES (?, ?, ?)",
         (&todo_item.title, &todo_item.details, &todo_item.isComplete),
     ).unwrap();
 
-    json!(StatusResponse {status: "success".to_string()}).to_string()
+    json::to_string(&StatusResponse {status: "success".to_string()})
 }
 
 fn get_todo_item_helper(id: i32, pool: &mut PooledConn) -> Result<Option<TodoItem>, String> {
@@ -112,13 +109,13 @@ fn get_todo_item(pool: &mut PooledConn, id: Option<&str>) -> String {
         data: todo_item,
     };
 
-    json!(todo_item_response).to_string()
+    json::to_string(&todo_item_response)
 }
 
 
 fn update_todo_item(pool: &mut PooledConn, id: Option<&str>, todo_item: &str) -> String {
     let id: i32 = id.unwrap().parse::<i32>().unwrap(); 
-    let todo_item: TodoItemInsert = serde_json::from_str(todo_item).expect("Invalid JSON");
+    let todo_item: TodoItemInsert = json::from_str(todo_item).expect("Invalid JSON");
 
     let existing_todo_item = match get_todo_item_helper(id, pool) {
         Ok(Some(todo)) => todo,
@@ -136,7 +133,7 @@ fn update_todo_item(pool: &mut PooledConn, id: Option<&str>, todo_item: &str) ->
         (todo_item.title, todo_item.details,&todo_item.isComplete, id),
     ).unwrap();
 
-    json!(StatusResponse {status: "success".to_string()}).to_string()
+    json::to_string(&StatusResponse {status: "success".to_string()})
 }
 
 fn delete_todo_item(pool: &mut PooledConn, id: Option<&str>) -> String {
@@ -155,7 +152,7 @@ fn delete_todo_item(pool: &mut PooledConn, id: Option<&str>) -> String {
 
     pool.exec_drop(r"DELETE FROM todo_item WHERE id = ?", (id,)).unwrap();
 
-    json!(StatusResponse {status: "success".to_string()}).to_string()
+    json::to_string(&StatusResponse {status: "success".to_string()})
 }
 
 fn main() {
