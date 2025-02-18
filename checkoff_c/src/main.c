@@ -2,8 +2,14 @@
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
+#include <limits.h>
+#include <errno.h>
 #include "json.h"
 #include "server.h"
+
+int print_license_notice() {
+  puts("libmicrohttpd is LGPL licensed, source: https://www.gnu.org/software/libmicrohttpd/");
+}
 
 char* malloc_json_response(const char *status, const char *name) {
   char *response = NULL;
@@ -52,15 +58,48 @@ char *handle_get_json(char *unused, char *response, size_t response_size) {
   return NULL;
 }
 
+int read_int(const char *input, int *result) {
+  char *endptr;
+  long value;
+
+  errno = 0;
+
+  value = strtol(input, &endptr, 10);
+
+  if (endptr == input) {
+    return 1; // No digits were found
+  } else if (*endptr != '\0') {
+    return 2; // Non-numeric characters found in input
+  } else if ((errno == ERANGE && (value == LONG_MAX || value == LONG_MIN)) || (value > INT_MAX || value < INT_MIN)) {
+    return 3; // The input value is out of the range of an integer
+  }
+
+  *result = (int)value;
+  return 0;
+}
+
 int main(int argc, char **argv) {
   if (argc != 2) {
-    printf("%s PORT\n",
+    printf("usage: %s [ PORT | --license ]\n",
      argv[0]);
     return 1;
   }
+  if (argc > 1 && strcmp(argv[1], "--license") == 0) {
+    print_license_notice();
+    return 0;
+  }
+
   char *port_str = argv[1];
 
-  Server_Daemon *d = server_start_daemon(atoi(port_str));
+  int port_int;
+  int ret_val = read_int(port_str, &port_int);
+  if (ret_val != 0) {
+    fprintf(stderr, "Error converting port \"%s\" to integer\n", port_str);
+    printf("usage: %s [ PORT | --license ]\n", argv[0]);
+    return 1;
+  }
+
+  Server_Daemon *d = server_start_daemon(port_int);
   if (d == NULL)
     return 1;
 
