@@ -9,7 +9,7 @@ typedef struct {
   HttpMethod method;
   const char *url;
   HttpHandler handler_function;
-  int response_requires_free;
+  int handler_returns_malloced_string;
 } Endpoint;
 
 struct connection_info {
@@ -36,14 +36,14 @@ void server_stop_daemon(Server_Daemon *d) {
   MHD_stop_daemon(d);
 }
 
-int server_register_endpoint(HttpMethod method, const char *url, HttpHandler handler_function, int response_requires_free) {
+int server_register_endpoint(HttpMethod method, const char *url, HttpHandler handler_function, int handler_returns_malloced_string) {
     if (endpoint_count >= MAX_ENDPOINTS) {
         return -1; // Error: too many endpoints
     }
     endpoints[endpoint_count].method = method;
     endpoints[endpoint_count].url = url;
     endpoints[endpoint_count].handler_function = handler_function;
-    endpoints[endpoint_count].response_requires_free = response_requires_free;
+    endpoints[endpoint_count].handler_returns_malloced_string = handler_returns_malloced_string;
     endpoint_count++;
     return 0;
 }
@@ -110,21 +110,18 @@ enum MHD_Result dispatch_request(void * cls,
     return MHD_YES;
   }
   else {
-    char *response_str;
-    char response_buffer[RESPONSE_SIZE];
+    char *response_str = NULL;
+    struct MHD_Response *response;
 
     printf("Handling %s %s\n", method, url);
-    response_str = endpoint.handler_function(con_info->post_data, response_buffer, RESPONSE_SIZE);
 
-    if (!response_str) {
-      response_str = response_buffer; // Use the buffer if no string is returned
-    }
-
-    struct MHD_Response *response;
-    if (endpoint.response_requires_free) {
+    if (endpoint.handler_returns_malloced_string) {
+      response_str = endpoint.handler_function(con_info->post_data, NULL, -1);
       response = MHD_create_response_from_buffer(strlen(response_str), response_str, MHD_RESPMEM_MUST_FREE);
     } else {
-      response = MHD_create_response_from_buffer(strlen(response_str), response_str, MHD_RESPMEM_MUST_COPY);
+      char response_buffer[RESPONSE_SIZE];
+      endpoint.handler_function(con_info->post_data, response_buffer, RESPONSE_SIZE);
+      response = MHD_create_response_from_buffer(strlen(response_buffer), response_buffer, MHD_RESPMEM_MUST_COPY);
     }
 
     int ret = MHD_queue_response(connection,
