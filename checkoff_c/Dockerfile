@@ -33,6 +33,9 @@ CMD ["./main"]
 
 from scratch
 
+LABEL libmicrohttpd_source="https://www.gnu.org/software/libmicrohttpd/"
+LABEL libmicrohttpd_license="LGPL"
+
 WORKDIR /app
 COPY --from=build_intermediate /app/main .
 CMD ["./main", "8080"]
