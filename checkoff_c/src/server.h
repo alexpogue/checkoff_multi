@@ -11,7 +11,7 @@ typedef enum {
   METHOD_POST
 } HttpMethod;
 
-typedef int (*HttpHandler)(char *post_data, char *response, size_t response_size);
+typedef char* (*HttpHandler)(char *post_data, char *output, size_t output_size);
 
 int server_register_endpoint(HttpMethod method, const char *url, HttpHandler handler_function, int response_requires_free);
 

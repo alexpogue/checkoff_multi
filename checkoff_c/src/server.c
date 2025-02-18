@@ -72,7 +72,7 @@ enum MHD_Result dispatch_request(void * cls,
   Endpoint endpoint;
   int endpoint_found = match_endpoint(url, method, &endpoint);
   if (!endpoint_found) {
-    printf("Endpoint not found for url %s %s\n", url, method);
+    printf("Endpoint not found for url %s %s\n", method, url);
     return MHD_NO;
   }
 
@@ -85,8 +85,8 @@ enum MHD_Result dispatch_request(void * cls,
     return MHD_NO; /* unexpected method */
 
   if (*con_cls == NULL) {
+    con_info = malloc(sizeof(struct connection_info));
     if (isPostRequest) {
-      con_info = malloc(sizeof(struct connection_info));
       con_info->post_data = NULL;
       con_info->post_data_size = 0;
     }
@@ -110,10 +110,15 @@ enum MHD_Result dispatch_request(void * cls,
     return MHD_YES;
   }
   else {
-    char response_str[RESPONSE_SIZE];
+    char *response_str;
+    char response_buffer[RESPONSE_SIZE];
 
     printf("Handling %s %s\n", method, url);
-    endpoint.handler_function(con_info->post_data, response_str, RESPONSE_SIZE);
+    response_str = endpoint.handler_function(con_info->post_data, response_buffer, RESPONSE_SIZE);
+
+    if (!response_str) {
+      response_str = response_buffer; // Use the buffer if no string is returned
+    }
 
     struct MHD_Response *response;
     if (endpoint.response_requires_free) {
