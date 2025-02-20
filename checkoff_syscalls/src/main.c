@@ -5,6 +5,24 @@
 
 #define PORT 8080
 
+#define REQUEST_GET 1
+#define REQUEST_POST 2
+
+typedef struct {
+  int request_type;
+  size_t body_start;
+  size_t body_end;
+} request_t;
+
+
+int parse_request(char *request_str, request_t *request_out) {
+  // TODO: Continue
+  if (!request_str) {
+    return -1;
+  }
+  return 0;
+}
+
 static void log_message(const char *message) {
     long the_strlen = my_strlen(message);
     long ret = write(STDOUT_FILENO, message, the_strlen);
@@ -21,6 +39,14 @@ void _start() {
 
     char *hello_str = "hello";
     size_t hello_len = my_strlen(hello_str);
+
+    if (0 == my_strncmp("hello", "zyx", 5)) {
+      my_puts("equal");
+    } else if (my_strncmp("hello", "zyx", 5) > 0) {
+      my_puts("hello > hel");
+    } else {
+      my_puts("hello < hel");
+    }
 
     char dest[11];
     my_strncpy(dest, "hello", hello_len + 1);
@@ -77,6 +103,7 @@ void _start() {
 
         // Read the request
         read(new_socket, buffer, sizeof(buffer) - 1);
+        my_puts(buffer);
 
         // Send the response
         write(new_socket, response, my_strlen(response));

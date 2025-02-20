@@ -42,6 +42,18 @@ unsigned short my_htons(unsigned short x) {
       return (x << 8) | (x >> 8);
 }
 
+int my_strncmp(const char *s1, const char *s2, size_t n) {
+  if (n == 0 || (s1 == NULL && s2 == NULL)) return 0; // no chars, or NULL==NULL
+  if (s1 == NULL) return -1; // treat NULL smaller than string
+  if (s2 == NULL) return 1;
+  n -= 1; // read all but one character
+  // iterate s1/s2 to second to last char, or where a char is null, or where chars not equal
+  while (n-- && *s1 && *s2 && *(s1++) == *(s2++)) {}
+  // return final comparison - either '\0' with '\0', '\0' with letter, or two last letters
+  // cast in case char is signed, as some platforms/compilers could
+  return (unsigned char)*s1 - (unsigned char)*s2;
+}
+
 long my_strlen(const char *str) {
   if (!str)
     return 0;
