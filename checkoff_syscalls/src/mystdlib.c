@@ -48,9 +48,14 @@ int my_strncmp(const char *s1, const char *s2, size_t n) {
   if (s2 == NULL) return 1;
   n -= 1; // read all but one character
   // iterate s1/s2 to second to last char, or where a char is null, or where chars not equal
-  while (n-- && *s1 && *s2 && *(s1++) == *(s2++)) {}
-  // return final comparison - either '\0' with '\0', '\0' with letter, or two last letters
-  // cast in case char is signed, as some platforms/compilers could
+  while (n-- && *s1 && *s2 && *s1 == *s2) {
+    s1++;
+    s2++;
+  }
+
+  // return final comparison - either '\0' with '\0', '\0' with letter,
+  //                           first non-equal chars, or two last chars
+  // cast in case char is signed, as some platforms/compilers do
   return (unsigned char)*s1 - (unsigned char)*s2;
 }
 

@@ -40,9 +40,10 @@ void _start() {
     char *hello_str = "hello";
     size_t hello_len = my_strlen(hello_str);
 
-    if (0 == my_strncmp("hello", "zyx", 5)) {
+    int cmp_val = my_strncmp("", "", 5);
+    if (cmp_val == 0) {
       my_puts("equal");
-    } else if (my_strncmp("hello", "zyx", 5) > 0) {
+    } else if (cmp_val > 0) {
       my_puts("hello > hel");
     } else {
       my_puts("hello < hel");
