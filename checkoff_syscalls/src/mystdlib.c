@@ -5,7 +5,7 @@
 
 #define INT_MIN -2147483648
 
-void int_to_str(int value, char *str) {
+char *int_to_str(int value, char *str) {
     int i = 0;
     if (value == INT_MIN) {
       str[0] = '-';
@@ -36,6 +36,12 @@ void int_to_str(int value, char *str) {
         str[i++] = buffer[++pos];
     }
     str[i] = '\0';
+    return str;
+}
+
+void print_int(const int i) {
+  char buf[12];
+  my_puts(int_to_str(i, buf));
 }
 
 unsigned short my_htons(unsigned short x) {
@@ -64,6 +70,14 @@ long my_strlen(const char *str) {
     return 0;
   long i = 0;
   for (; str[i] != '\0'; ++i) {}
+  return i;
+}
+
+size_t my_strnlen(const char *str, size_t maxlen) {
+  if (!str)
+    return 0;
+  size_t i = 0;
+  for (; str[i] != '\0' && i < maxlen; ++i) {}
   return i;
 }
 
@@ -97,4 +111,52 @@ int my_puts(const char *str) {
     if (ret < 0 || ret2 < 0)
       return EOF;
     return 0;
+}
+
+void *my_memchr(const void *mem, int ch, size_t n) {
+  if (!mem) return NULL;
+  unsigned char *ptr = (unsigned char*)mem;
+  for (; n--; ptr++) {
+    if (*ptr == (unsigned char)ch)
+      return ptr;
+  }
+  return NULL;
+}
+
+char *my_strchr(const char *str, int ch) {
+  if (!str) return NULL;
+  for (; *str != '\0'; str++) {
+    if (*str == (char)ch) {
+      return (char*)str;
+    }
+  }
+  return NULL;
+}
+
+char *my_strstr(const char *s1, const char *s2) {
+  if (!s1 || !s2) return NULL;
+
+  size_t s2_len = my_strlen(s2);
+  if (s2_len == 0) return (char*)s1; // if needle empty string, found
+  if (s2_len == 1) return my_strchr(s1, s2[0]);
+
+  // if needle is bigger than haystack, never found
+  if (s2_len > my_strnlen(s1, s2_len + 1)) return NULL;
+
+  // iterate haystack until needle no longer fits in the leftover chars
+  // e.g. haystack: "world", needle: "rld", iterate haystack to "r", exit at "l"
+  for (;*(s1 + s2_len - 1) != '\0'; s1++) {
+    const char *s2_ptr = s2;
+    // modify s1 directly, then reset s1 using s2's offset, no need for s1_ptr
+    while (*s2_ptr != '\0' && *s1 == *s2_ptr) {
+      s1++;
+      s2_ptr++;
+    }
+    if (*s2_ptr == '\0') {
+      // all s2 chars matched, found! Rewind s1 to same place loop block began
+      return s1 - (s2_ptr - s2);
+    }
+    s1 -= (s2_ptr - s2); //rewind s1 for next iteration
+  }
+  return NULL;
 }

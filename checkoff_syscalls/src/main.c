@@ -2,26 +2,9 @@
 #include <netinet/in.h>
 #include "syscall.h"
 #include "mystdlib.h"
+#include "myhttp.h"
 
 #define PORT 8080
-
-#define REQUEST_GET 1
-#define REQUEST_POST 2
-
-typedef struct {
-  int request_type;
-  size_t body_start;
-  size_t body_end;
-} request_t;
-
-
-int parse_request(char *request_str, request_t *request_out) {
-  // TODO: Continue
-  if (!request_str) {
-    return -1;
-  }
-  return 0;
-}
 
 static void log_message(const char *message) {
     long the_strlen = my_strlen(message);
@@ -49,6 +32,22 @@ void _start() {
       my_puts("hello < hel");
     }
 
+    my_puts("strstr");
+    char *haystack = "hello";
+    char *found = my_strstr(haystack, "helloo");
+    if (!found)
+      my_puts("not found");
+    else
+      my_puts(found);
+
+    char *str = "hello";
+    char *pos = my_memchr(str, 'l', my_strlen(str));
+    my_puts("index of: ");
+    if (pos != NULL)
+      print_int(pos - str);
+    else
+      my_puts("NULL");
+
     char dest[11];
     my_strncpy(dest, "hello", hello_len + 1);
     my_puts(dest);
@@ -57,11 +56,8 @@ void _start() {
     my_puts(dest);
 
     int i = 2147483647;
-    char istr[12];
-    int_to_str(i, istr);
-    my_puts(istr);
-    int_to_str(sizeof(int), istr);
-    my_puts(istr);
+    print_int(i);
+    print_int(sizeof(int));
 
     // END MYSTDLIB TESTS
 
@@ -103,8 +99,29 @@ void _start() {
         my_puts("got request");
 
         // Read the request
-        read(new_socket, buffer, sizeof(buffer) - 1);
+        ssize_t bytes_read = read(new_socket, buffer, sizeof(buffer) - 1);
+        if (bytes_read < sizeof(buffer) - 1)
+          buffer[bytes_read] = '\0';
+        else
+          my_puts("Error: buffer overloaded, need more space in buffer");
+
         my_puts(buffer);
+
+        char method[MAX_HTTP_METHOD_LENGTH + 1];
+        char path[MAX_HTTP_PATH_LENGTH + 1];
+        char protocol[MAX_HTTP_PROTOCOL_LENGTH + 1];
+
+        parse_request(buffer,
+                      method, MAX_HTTP_METHOD_LENGTH + 1,
+                      path, MAX_HTTP_PATH_LENGTH + 1,
+                      protocol, MAX_HTTP_PROTOCOL_LENGTH + 1);
+
+        my_puts("method:");
+        my_puts(method);
+        my_puts("path:");
+        my_puts(path);
+        my_puts("protocol:");
+        my_puts(protocol);
 
         // Send the response
         write(new_socket, response, my_strlen(response));
