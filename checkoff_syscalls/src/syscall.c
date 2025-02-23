@@ -53,6 +53,9 @@ int close(int fd) {
 
 void _exit(int status) {
       my_syscall_1(SYS_EXIT, status);
+      while (1) {
+        // function should not get here, but just in case, to solve `warning: ‘noreturn’ function does return` gcc warning
+      }
 }
 
 static inline long my_syscall_1(long number, long arg1) {

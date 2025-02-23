@@ -6,10 +6,32 @@
 
 #define PORT 8080
 
-static void log_message(const char *message) {
-    long the_strlen = my_strlen(message);
-    long ret = write(STDOUT_FILENO, message, the_strlen);
-    return;
+#define MAX_NUM_TOKENS 128
+#define MAX_TOKEN_TYPE_LENGTH 16
+
+int token_type_to_string(http_parse_token_type_t token_type, char *out_str, size_t out_str_len) {
+  if (token_type == HTTP_METHOD)
+    my_strncpy(out_str, "method", out_str_len);
+  else if (token_type == HTTP_PATH)
+    my_strncpy(out_str, "path", out_str_len);
+  else if (token_type == HTTP_PROTOCOL)
+    my_strncpy(out_str, "protocol", out_str_len);
+  else if (token_type == HTTP_HEADER_KEY)
+    my_strncpy(out_str, "header key", out_str_len);
+  else if (token_type == HTTP_HEADER_VALUE)
+    my_strncpy(out_str, "header value", out_str_len);
+  else if (token_type == HTTP_BODY)
+    my_strncpy(out_str, "body", out_str_len);
+  else
+    my_strncpy(out_str, "unknown", out_str_len);
+  return 0;
+}
+
+void put_substring(char *str, size_t start, size_t end) {
+  for (int i = start; i < end; i++) {
+    my_putchar(str[i]);
+  }
+  my_putchar('\n');
 }
 
 void _start() {
@@ -17,7 +39,7 @@ void _start() {
     struct sockaddr_in address;
     char buffer[1024];
     const char *response = "HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nHello, world!";
-
+/*
     // START MYSTDLIB TESTS
 
     char *hello_str = "hello";
@@ -60,6 +82,7 @@ void _start() {
     print_int(sizeof(int));
 
     // END MYSTDLIB TESTS
+*/
 
     my_puts("Creating socket...");
 
@@ -111,17 +134,27 @@ void _start() {
         char path[MAX_HTTP_PATH_LENGTH + 1];
         char protocol[MAX_HTTP_PROTOCOL_LENGTH + 1];
 
-        parse_request(buffer,
-                      method, MAX_HTTP_METHOD_LENGTH + 1,
-                      path, MAX_HTTP_PATH_LENGTH + 1,
-                      protocol, MAX_HTTP_PROTOCOL_LENGTH + 1);
+        http_parse_token_t tokens[MAX_NUM_TOKENS];
+        size_t num_tokens;
 
-        my_puts("method:");
-        my_puts(method);
-        my_puts("path:");
-        my_puts(path);
-        my_puts("protocol:");
-        my_puts(protocol);
+        int ret = parse_request_with_sizes(buffer, my_strlen(buffer), NULL, &num_tokens);
+        if (ret != 0) {
+          my_puts("error parsing");
+        }
+
+        ret = parse_request(buffer, my_strlen(buffer), tokens, MAX_NUM_TOKENS);
+        if (ret != 0) {
+          my_puts("error parsing");
+        }
+        for(int i = 0 ; i < num_tokens; i++ ) {
+          char token_type_str[MAX_TOKEN_TYPE_LENGTH];
+          int ret = token_type_to_string(tokens[i].type, token_type_str, MAX_TOKEN_TYPE_LENGTH);
+          if (ret < 0) {
+            my_puts("error converting token type to string");
+          }
+          my_puts(token_type_str);
+          put_substring(buffer, tokens[i].start, tokens[i].end);
+        }
 
         // Send the response
         write(new_socket, response, my_strlen(response));

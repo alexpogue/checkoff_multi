@@ -12,29 +12,23 @@
 // No set length, just set a reasonable amount
 #define MAX_HTTP_PATH_LENGTH 512
 
-/* //unused
 typedef enum {
-  HTTP_METHOD_UNSUPPORTED = 0,
-  HTTP_METHOD_GET = 1 << 0,
-  HTTP_METHOD_POST =  1 << 1
-} http_method_t;
+  HTTP_UNDEFINED = 0,
+  HTTP_METHOD = 1 << 0,
+  HTTP_PATH = 1 << 1,
+  HTTP_PROTOCOL = 1 << 2,
+  HTTP_HEADER_KEY = 1 << 3,
+  HTTP_HEADER_VALUE = 1 << 4,
+  HTTP_BODY = 1 << 5
+} http_parse_token_type_t;
 
 typedef struct {
-  http_method_t method;
-} http_request_t;
+  size_t start;
+  size_t end;
+  http_parse_token_type_t type;
+} http_parse_token_t;
 
-char *http_method_to_string(char *dest, http_method_t method, size_t n);
-*/
-int parse_request_fill_sizes(char *request_str,
-                             char *method, size_t *method_size,
-                             char *path, size_t *path_size,
-                             char *protocol, size_t *protocol_size,
-                             char **headers, size_t *num_headers,
-                             size_t *header_sizes);
-
-int parse_request(char *request_str,
-                  char *method, size_t method_size,
-                  char *path, size_t path_size,
-                  char *protocol, size_t protocol_size);
+int parse_request_with_sizes(char *request_str, size_t request_str_len, http_parse_token_t *tokens, size_t *num_tokens);
+int parse_request(char *request_str, size_t request_str_len, http_parse_token_t *tokens, size_t num_tokens);
 
 #endif

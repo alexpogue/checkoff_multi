@@ -5,6 +5,7 @@
 
 #define INT_MIN -2147483648
 
+#ifdef UNUSED
 char *int_to_str(int value, char *str) {
     int i = 0;
     if (value == INT_MIN) {
@@ -43,11 +44,13 @@ void print_int(const int i) {
   char buf[12];
   my_puts(int_to_str(i, buf));
 }
+#endif
 
 unsigned short my_htons(unsigned short x) {
       return (x << 8) | (x >> 8);
 }
 
+#ifdef UNUSED
 int my_strncmp(const char *s1, const char *s2, size_t n) {
   if (n == 0 || (s1 == NULL && s2 == NULL)) return 0; // no chars, or NULL==NULL
   if (s1 == NULL) return -1; // treat NULL smaller than string
@@ -64,6 +67,7 @@ int my_strncmp(const char *s1, const char *s2, size_t n) {
   // cast in case char is signed, as some platforms/compilers do
   return (unsigned char)*s1 - (unsigned char)*s2;
 }
+#endif
 
 long my_strlen(const char *str) {
   if (!str)
@@ -81,6 +85,7 @@ size_t my_strnlen(const char *str, size_t maxlen) {
   return i;
 }
 
+#ifdef UNUSED
 char *my_strncat(char *dest, const char *src, size_t n) {
   if (!dest || !src)
     return dest;
@@ -91,6 +96,7 @@ char *my_strncat(char *dest, const char *src, size_t n) {
   *dest_ptr = '\0'; // add null terminator at n or if we found src null terminator earlier
   return dest;
 }
+#endif
 
 char *my_strncpy(char *dest, const char *src, size_t n) {
   if (!dest || !src)
@@ -105,6 +111,13 @@ char *my_strncpy(char *dest, const char *src, size_t n) {
   return dest;
 }
 
+int my_putchar(const char c) {
+    long ret = write(STDOUT_FILENO, &c, 1);
+    if (ret < 0)
+      return EOF;
+    return 0;
+}
+
 int my_puts(const char *str) {
     long ret = write(STDOUT_FILENO, str, my_strlen(str));
     long ret2 = write(STDOUT_FILENO, "\n", 1);
@@ -113,6 +126,7 @@ int my_puts(const char *str) {
     return 0;
 }
 
+#ifdef UNUSED
 void *my_memchr(const void *mem, int ch, size_t n) {
   if (!mem) return NULL;
   unsigned char *ptr = (unsigned char*)mem;
@@ -122,6 +136,7 @@ void *my_memchr(const void *mem, int ch, size_t n) {
   }
   return NULL;
 }
+#endif
 
 char *my_strchr(const char *str, int ch) {
   if (!str) return NULL;
@@ -154,7 +169,7 @@ char *my_strstr(const char *s1, const char *s2) {
     }
     if (*s2_ptr == '\0') {
       // all s2 chars matched, found! Rewind s1 to same place loop block began
-      return s1 - (s2_ptr - s2);
+      return (char*)(s1 - (s2_ptr - s2));
     }
     s1 -= (s2_ptr - s2); //rewind s1 for next iteration
   }
