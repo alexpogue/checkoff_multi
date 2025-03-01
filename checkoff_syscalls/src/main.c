@@ -2,12 +2,17 @@
 #include <netinet/in.h>
 #include "syscall.h"
 #include "mystdlib.h"
+#include "my_http_request.h"
 #include "myhttp.h"
 
 #define PORT 8080
 
 #define MAX_NUM_TOKENS 128
 #define MAX_TOKEN_TYPE_LENGTH 16
+#define MAX_NUM_HEADERS 128
+#define MAX_NUM_CHARS_IN_HEADER_KEY 128
+
+#define MIN(a, b) ((a < b) ? (a) : (b))
 
 int token_type_to_string(http_parse_token_type_t token_type, char *out_str, size_t out_str_len) {
   if (token_type == HTTP_METHOD)
@@ -32,6 +37,10 @@ void put_substring(char *str, size_t start, size_t end) {
     my_putchar(str[i]);
   }
   my_putchar('\n');
+}
+
+void put_token(char *str, http_parse_token_t token) {
+  put_substring(str, token.start, token.end);
 }
 
 void _start() {
@@ -146,6 +155,7 @@ void _start() {
         if (ret != 0) {
           my_puts("error parsing");
         }
+        /*
         for(int i = 0 ; i < num_tokens; i++ ) {
           char token_type_str[MAX_TOKEN_TYPE_LENGTH];
           int ret = token_type_to_string(tokens[i].type, token_type_str, MAX_TOKEN_TYPE_LENGTH);
@@ -155,6 +165,59 @@ void _start() {
           my_puts(token_type_str);
           put_substring(buffer, tokens[i].start, tokens[i].end);
         }
+        */
+        request_header_t request_headers[MAX_NUM_HEADERS];
+        for (int i = 0; i < ENUM_COUNT(HEADER) - 2; i++) {
+          // initialize the categorized headers to empty
+          request_header_t empty_header;
+          empty_header.type = HEADER_EMPTY;
+          request_headers[i] = empty_header;
+        }
+
+        request_t request;
+        // intialize fields to zero
+        http_parse_token_t undefined_token = {0, 0, HTTP_UNDEFINED};
+        request.body = undefined_token;
+
+        request.headers = request_headers;
+        ret = create_request_from_tokens(buffer, tokens, num_tokens, MAX_NUM_HEADERS, &request);
+        if (ret < 0 ) {
+          my_puts("Error creating request from tokens");
+        }
+
+        my_puts("method:");
+        put_token(buffer, request.method);
+        my_puts("path:");
+        put_token(buffer, request.path);
+        my_puts("protocol:");
+        put_token(buffer, request.protocol);
+        my_puts("");
+        my_puts("## Special headers ##");
+
+        char special_token_key[MAX_NUM_CHARS_IN_HEADER_KEY];
+        for (int i = 0; i < ENUM_COUNT(HEADER); i++) {
+          if (request.headers[i].type != HEADER_EMPTY) {
+            my_puts("header_key:");
+            my_puts(get_key_string_from_header_type(i, special_token_key, MAX_NUM_CHARS_IN_HEADER_KEY));
+            my_puts("header_value:");
+            put_token(buffer, request.headers[i].value);
+          }
+        }
+
+        my_puts("");
+        my_puts("## Regular headers ##");
+
+        for (int i = 0; i < request.num_uncategorized_headers; i++) {
+          int cur = i + ENUM_COUNT(HEADER);
+          my_puts("header_key:");
+          put_token(buffer, request.headers[cur].key);
+          my_puts("header_value:");
+          put_token(buffer, request.headers[cur].value);
+        }
+
+        my_puts("");
+        my_puts("## Body ##");
+        put_token(buffer, request.body);
 
         // Send the response
         write(new_socket, response, my_strlen(response));

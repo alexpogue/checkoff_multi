@@ -13,13 +13,13 @@
 #define MAX_HTTP_PATH_LENGTH 512
 
 typedef enum {
-  HTTP_UNDEFINED = 0,
-  HTTP_METHOD = 1 << 0,
-  HTTP_PATH = 1 << 1,
-  HTTP_PROTOCOL = 1 << 2,
-  HTTP_HEADER_KEY = 1 << 3,
-  HTTP_HEADER_VALUE = 1 << 4,
-  HTTP_BODY = 1 << 5
+  HTTP_UNDEFINED,
+  HTTP_METHOD,
+  HTTP_PATH,
+  HTTP_PROTOCOL,
+  HTTP_HEADER_KEY,
+  HTTP_HEADER_VALUE,
+  HTTP_BODY
 } http_parse_token_type_t;
 
 typedef struct {

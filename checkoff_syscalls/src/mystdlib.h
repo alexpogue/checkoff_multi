@@ -20,6 +20,7 @@ char *my_strchr(const char *s, int c);
 char *my_strstr(const char *s1, const char *s2);
 
 #ifdef UNUSED
+char *my_strtok(char *str, const char *delims);
 char *int_to_str(int, char*);
 void print_int(int);
 char *my_strncat(char *dest, const char *src, size_t n);

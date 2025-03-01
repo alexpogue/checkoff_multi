@@ -50,7 +50,6 @@ unsigned short my_htons(unsigned short x) {
       return (x << 8) | (x >> 8);
 }
 
-#ifdef UNUSED
 int my_strncmp(const char *s1, const char *s2, size_t n) {
   if (n == 0 || (s1 == NULL && s2 == NULL)) return 0; // no chars, or NULL==NULL
   if (s1 == NULL) return -1; // treat NULL smaller than string
@@ -67,7 +66,6 @@ int my_strncmp(const char *s1, const char *s2, size_t n) {
   // cast in case char is signed, as some platforms/compilers do
   return (unsigned char)*s1 - (unsigned char)*s2;
 }
-#endif
 
 long my_strlen(const char *str) {
   if (!str)
@@ -175,3 +173,33 @@ char *my_strstr(const char *s1, const char *s2) {
   }
   return NULL;
 }
+
+#ifdef UNUSED
+char *my_strtok(char *str, const char *delims) {
+  if (!delims) return NULL;
+  static char *internal_str;
+  if (str) {
+    internal_str = str;
+  }
+  if (!internal_str) return NULL;
+
+  // Skip leading delimiters
+  while (*internal_str != '\0' && my_strchr(delims, *internal_str)) {
+    internal_str++;
+  }
+  if (*internal_str == '\0') {
+    // read all delimiters or empty string and reached end
+    return NULL;
+  }
+  char *start = internal_str;
+  if (!internal_str) return NULL;
+  while (*internal_str != '\0' && !my_strchr(delims, *internal_str)) {
+    ++internal_str;
+  }
+  if (*internal_str != '\0') {
+    *internal_str = '\0'; // null terminate token
+    ++internal_str; // move to next token for next str_tok call
+  }
+  return start;
+}
+#endif
