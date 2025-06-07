@@ -1,5 +1,5 @@
 bottle==0.13.3
-peewee==3.17.8
+peewee==3.18.1
 marshmallow-peewee==5.0.0
 mysqlclient==2.2.7
 waitress==3.0.2
