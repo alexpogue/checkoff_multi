@@ -11,7 +11,7 @@ typedef long long ptrdiff_t;
 
 unsigned short my_htons(unsigned short x);
 int my_strncmp(const char*, const char*, size_t);
-long my_strlen(const char *str);
+size_t my_strlen(const char *str);
 size_t my_strnlen(const char *str, size_t maxlen);
 int my_putchar(const char c);
 int my_puts(const char *str);
