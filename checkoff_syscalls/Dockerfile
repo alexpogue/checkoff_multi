@@ -1,4 +1,4 @@
-from alpine:3.21 as build_intermediate
+FROM alpine:3.21 AS build_intermediate
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ RUN gcc -Os -s -nostdlib -fno-builtin -static -o main src/main.c src/syscall.c s
 
 CMD ["./main"]
 
-from scratch
+FROM scratch
 
 WORKDIR /app
 COPY --from=build_intermediate /app/main .
