@@ -2,4 +2,4 @@ bottle==0.13.3
 peewee==3.17.8
 marshmallow-peewee==5.0.0
 mysqlclient==2.2.7
-gunicorn==23.0.0
+waitress==3.0.2
