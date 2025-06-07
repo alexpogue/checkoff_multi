@@ -1,4 +1,4 @@
-FROM alexpogue/python_custom:bookworm-slim-disable-dtags AS base
+FROM python:3.13.4-slim-bookworm AS base
 
 WORKDIR /app
 
