@@ -8,7 +8,7 @@ COPY gunicorn.conf.py .
 COPY standalone.py .
 COPY ./checkoff_python ./checkoff_python
 
-RUN python3.13 -OO -m PyInstaller --onefile --add-data "checkoff_python/config.py:checkoff_python" --hidden-import "pysqlite2" --hidden-import "gunicorn.glogging" --hidden-import "gunicorn.workers.sync" standalone.py
+RUN python3.13 -OO -m PyInstaller --onefile --add-data "checkoff_python/config.py:checkoff_python" --hidden-import "gunicorn.glogging" --hidden-import "gunicorn.workers.sync" standalone.py
 
 WORKDIR /app/dist
 RUN python3.13 -OO -m staticx --strip standalone standalone_app
