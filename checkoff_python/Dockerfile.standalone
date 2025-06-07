@@ -7,6 +7,7 @@ RUN pip install --upgrade pip && \
 COPY standalone.py .
 COPY ./checkoff_python ./checkoff_python
 
+# NOTE: broke when I tried to exclude email, xml, distutils, importlib.metadata, maybe others
 RUN python3.13 -OO -m PyInstaller --onefile --add-data "checkoff_python/config.py:checkoff_python" \
   --exclude-module tkinter \
   --exclude-module test \
@@ -33,6 +34,7 @@ RUN python3.13 -OO -m PyInstaller --onefile --add-data "checkoff_python/config.p
   --exclude-module lzma \
   --exclude-module gzip \
   --exclude-module sqlite3 \
+  --exclude-module idlelib \
   --exclude-module pkg_resources \
   --exclude-module email.mime \
   standalone.py
