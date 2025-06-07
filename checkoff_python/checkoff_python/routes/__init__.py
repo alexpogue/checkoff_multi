@@ -1,5 +1,5 @@
-from .todo_item import todo_item_blueprint
+from .todo_item import todo_item_sub_app
 
 
 def init_app(app):
-    app.register_blueprint(todo_item_blueprint, url_prefix='/todo-item')
+    app.mount('/todo-item', todo_item_sub_app)
