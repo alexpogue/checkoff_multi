@@ -37,6 +37,8 @@ RUN python3.13 -OO -m PyInstaller --onefile --add-data "checkoff_python/config.p
   --exclude-module idlelib \
   --exclude-module pkg_resources \
   --exclude-module email.mime \
+  --exclude-module xml.etree \
+  --exclude-module email.contentmanager \
   standalone.py
 
 WORKDIR /app/dist
