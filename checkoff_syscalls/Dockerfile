@@ -12,8 +12,7 @@ COPY ./src ./src
 RUN clang -O1 -flto -Wl,--strip-all -fuse-ld=lld -fno-stack-protector \
     -ffunction-sections -fdata-sections -Wl,--gc-sections \
     -nostdlib -static -fno-ident -fno-builtin \
-    -o main src/main.c src/syscall.c src/mystdlib.c src/myhttp.c src/my_http_request.c #src/tinyprintf.c
-
+    -o main src/main.c src/syscall.c src/mystdlib.c src/myhttp.c src/my_http_request.c
 
 #RUN ./upx-4.2.4-amd64_linux/upx -9 -o main_small main && mv main_small main
 RUN chmod +x main

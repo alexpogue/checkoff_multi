@@ -18,8 +18,10 @@ int my_puts(const char *str);
 char *my_strncpy(char *dest, const char *src, size_t n);
 char *my_strchr(const char *s, int c);
 char *my_strstr(const char *s1, const char *s2);
+void *memset(void *s, int c, size_t n);
 
 #ifdef UNUSED
+void *memcpy(void *dest, const void *src, size_t n);
 char *my_strtok(char *str, const char *delims);
 char *int_to_str(int, char*);
 void print_int(int);

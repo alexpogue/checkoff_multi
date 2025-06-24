@@ -61,14 +61,8 @@ int create_request_from_tokens(char *request_str, http_parse_token_t *tokens, si
   size_t first_uncategorized_header_index = ENUM_COUNT(HEADER);
 
   //initialize first indices to `HEADER_EMPTY` so we know which ones weren't filled
-  for (int i = 0; i < first_uncategorized_header_index; i++) {
-    request_header_t empty_header;
-    empty_header.key.start = 0;
-    empty_header.key.end = 0;
-    empty_header.key.type = HTTP_UNDEFINED;
-    empty_header.value.start = 0;
-    empty_header.value.end = 0;
-    empty_header.value.type = HTTP_UNDEFINED;
+  for (size_t i = 0; i < first_uncategorized_header_index; i++) {
+    request_header_t empty_header = {0};
     empty_header.type = HEADER_EMPTY;
 
     request_result->headers[i] = empty_header;
@@ -93,8 +87,9 @@ int create_request_from_tokens(char *request_str, http_parse_token_t *tokens, si
       if (value->type != HTTP_HEADER_VALUE) {
         return -2; // expected value for the key, but found another token type
       }
-      request_header_t header;
 
+      // TODO: for some reason adding "= {0}" to the end of this line causes segfault.. It shouldn't.. probably a memory bug somewhere
+      request_header_t header;
       create_header_from_tokens(request_str, key, value, &header);
       insert_header_into_array(header, request_result->headers, &next_header_index, headers_size);
     } else {

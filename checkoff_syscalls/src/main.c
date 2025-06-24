@@ -34,7 +34,7 @@ int token_type_to_string(http_parse_token_type_t token_type, char *out_str, size
 }
 
 void put_substring(char *str, size_t start, size_t end) {
-  for (int i = start; i < end; i++) {
+  for (size_t i = start; i < end; i++) {
     my_putchar(str[i]);
   }
   my_putchar('\n');
@@ -47,7 +47,9 @@ void put_token(char *str, http_parse_token_t token) {
 void _start() {
     int server_fd, new_socket;
     struct sockaddr_in address;
-    char buffer[1024];
+    char buffer[1024] = {0};
+
+
     const char *response = "HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nHello, world!";
 /*
     // START MYSTDLIB TESTS
@@ -127,29 +129,24 @@ void _start() {
 
     while (1) {
         // Accept an incoming connection
-        socklen_t addrlen = sizeof(address);
+        socklen_t addrlen = (socklen_t)sizeof(address);
         new_socket = accept(server_fd, (struct sockaddr*)&address, &addrlen);
         my_puts("got request");
 
         // Read the request
         ssize_t bytes_read = read(new_socket, buffer, sizeof(buffer) - 1);
-        if (bytes_read < sizeof(buffer) - 1)
-          buffer[bytes_read] = '\0';
-        else
-          my_puts("Error: buffer overloaded, need more space in buffer");
-
-        my_puts(buffer);
-
-        char method[MAX_HTTP_METHOD_LENGTH + 1];
-        char path[MAX_HTTP_PATH_LENGTH + 1];
-        char protocol[MAX_HTTP_PROTOCOL_LENGTH + 1];
-
-        http_parse_token_t tokens[MAX_NUM_TOKENS];
-        for (int i = 0; i < MAX_NUM_TOKENS; i++) {
-          tokens[i].start = 0;
-          tokens[i].end = 0;
-          tokens[i].type = HTTP_UNDEFINED;
+        if (bytes_read < 0) {
+          my_puts("Error: read error");
+          _exit(1);
         }
+        else if ((size_t) bytes_read < sizeof(buffer) - 1)
+          buffer[bytes_read] = '\0';
+        else {
+          my_puts("Error: buffer overloaded, need more space in buffer");
+          _exit(1);
+        }
+
+        http_parse_token_t tokens[MAX_NUM_TOKENS] = {0};
         size_t num_tokens = MAX_NUM_TOKENS;
 
         int ret = parse_request_with_sizes(buffer, my_strlen(buffer), NULL, &num_tokens);
@@ -172,29 +169,12 @@ void _start() {
           put_substring(buffer, tokens[i].start, tokens[i].end);
         }
         */
-        request_header_t request_headers[MAX_NUM_HEADERS];
-        for (int i = 0; i < MAX_NUM_HEADERS; i++) {
-          // initialize the categorized headers to empty
-          request_header_t empty_header;
-          empty_header.key.start = 0;
-          empty_header.key.end = 0;
-          empty_header.key.type = HTTP_UNDEFINED;
-          empty_header.value.start = 0;
-          empty_header.value.end = 0;
-          empty_header.value.type = HTTP_UNDEFINED;
-          empty_header.type = HEADER_EMPTY;
-          request_headers[i] = empty_header;
-        }
+        request_header_t request_headers[MAX_NUM_HEADERS] = {0};
 
         request_t request;
         // intialize fields to zero
 
-        http_parse_token_t undefined_token;
-        undefined_token.start = 0;
-        undefined_token.end = 0;
-        undefined_token.type = HTTP_UNDEFINED;
-
-        request.body = undefined_token;
+        request.body = (http_parse_token_t){0};
 
         request.headers = request_headers;
         ret = create_request_from_tokens(buffer, tokens, num_tokens, MAX_NUM_HEADERS, &request);
@@ -224,7 +204,7 @@ void _start() {
         my_puts("");
         my_puts("## Regular headers ##");
 
-        for (int i = 0; i < request.num_uncategorized_headers; i++) {
+        for (size_t i = 0; i < request.num_uncategorized_headers; i++) {
           int cur = i + ENUM_COUNT(HEADER);
           my_puts("header_key:");
           put_token(buffer, request.headers[cur].key);

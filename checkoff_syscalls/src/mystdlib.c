@@ -96,7 +96,7 @@ char *my_strncat(char *dest, const char *src, size_t n) {
 char *my_strncpy(char *dest, const char *src, size_t n) {
   if (!dest || !src)
     return dest; // NULL if !dest, and also should return dest without changes if src is NULL
-  int i = 0;
+  size_t i = 0;
   for (; i < n && src[i] != '\0'; i++)
     // copy characters
     dest[i] = src[i];
@@ -171,7 +171,23 @@ char *my_strstr(const char *s1, const char *s2) {
   return NULL;
 }
 
+void *memset(void *dest, int c, size_t n) {
+    unsigned char *p = dest;
+    while (n--) {
+        *p++ = (unsigned char)c;
+    }
+    return dest;
+}
+
 #ifdef UNUSED
+void *memcpy(void *dest, const void *src, size_t n) {
+    unsigned char *d = dest;
+    const unsigned char *s = src;
+    while (n--) *d++ = *s++;
+    return dest;
+}
+
+
 char *my_strtok(char *str, const char *delims) {
   if (!delims) return NULL;
   static char *internal_str;

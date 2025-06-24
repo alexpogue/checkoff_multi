@@ -51,93 +51,81 @@ int close(int fd) {
       return my_syscall_1(SYS_CLOSE, fd);
 }
 
-void _exit(int status) {
+__attribute__((noreturn)) void _exit(int status) {
       my_syscall_1(SYS_EXIT, status);
-      while (1) {
-        // function should not get here, but just in case, to solve `warning: ‘noreturn’ function does return` gcc warning
-      }
+      __builtin_unreachable();
 }
 
 static inline long my_syscall_1(long number, long arg1) {
-    long ret;
+    register long rax asm("rax") = number;
+    register long rdi asm("rdi") = arg1;
     asm volatile (
-        "movq %1, %%rax\n"
-        "movq %2, %%rdi\n"
-        "syscall\n"
-        "movq %%rax, %0\n"
-        : "=r"(ret)
-        : "r"(number), "r"(arg1)
-        : "memory", "rax", "rdi"
+        "syscall"
+        : "+r"(rax)
+        : "r"(rdi)
+        : "rcx", "r11", "memory"
     );
-    return ret;
+    return rax;
 }
 
 static inline long my_syscall_2(long number, long arg1, long arg2) {
-    long ret;
+    register long rax asm("rax") = number;
+    register long rdi asm("rdi") = arg1;
+    register long rsi asm("rsi") = arg2;
     asm volatile (
-        "movq %1, %%rax\n"
-        "movq %2, %%rdi\n"
-        "movq %3, %%rsi\n"
-        "syscall\n"
-        "movq %%rax, %0\n"
-        : "=r"(ret)
-        : "r"(number), "r"(arg1), "r"(arg2)
-        : "memory", "rax", "rdi", "rsi"
+        "syscall"
+        : "+r"(rax)
+        : "r"(rdi), "r"(rsi)
+        : "rcx", "r11", "memory"
     );
-    return ret;
+    return rax;
 }
 
 static inline long my_syscall_3(long number, long arg1, long arg2, long arg3) {
-    long ret;
+    register long rax asm("rax") = number;
+    register long rdi asm("rdi") = arg1;
+    register long rsi asm("rsi") = arg2;
+    register long rdx asm("rdx") = arg3;
     asm volatile (
-        "movq %1, %%rax\n"
-        "movq %2, %%rdi\n"
-        "movq %3, %%rsi\n"
-        "movq %4, %%rdx\n"
-        "syscall\n"
-        "movq %%rax, %0\n"
-        : "=r"(ret)
-        : "r"(number), "r"(arg1), "r"(arg2), "r"(arg3)
-        : "memory", "rax", "rdi", "rsi", "rdx"
+        "syscall"
+        : "+r"(rax)
+        : "r"(rdi), "r"(rsi), "r"(rdx)
+        : "rcx", "r11", "memory"
     );
-    return ret;
+    return rax;
 }
 
 static inline long my_syscall_5(long number, long arg1, long arg2, long arg3, long arg4, long arg5) {
-    long ret;
+    register long rax asm("rax") = number;
+    register long rdi asm("rdi") = arg1;
+    register long rsi asm("rsi") = arg2;
+    register long rdx asm("rdx") = arg3;
+    register long r10 asm("r10") = arg4;
+    register long r8  asm("r8")  = arg5;
     asm volatile (
-        "movq %1, %%rax\n"
-        "movq %2, %%rdi\n"
-        "movq %3, %%rsi\n"
-        "movq %4, %%rdx\n"
-        "movq %5, %%r10\n"
-        "movq %6, %%r8\n"
-        "syscall\n"
-        "movq %%rax, %0\n"
-        : "=r"(ret)
-        : "r"(number), "r"(arg1), "r"(arg2), "r"(arg3), "r"(arg4), "r"(arg5)
-        : "memory", "rax", "rdi", "rsi", "rdx", "r10", "r8"
+        "syscall"
+        : "+r"(rax)
+        : "r"(rdi), "r"(rsi), "r"(rdx), "r"(r10), "r"(r8)
+        : "rcx", "r11", "memory"
     );
-    return ret;
+    return rax;
 }
 
 /*
 static inline long my_syscall_6(long number, long arg1, long arg2, long arg3, long arg4, long arg5, long arg6) {
-    long ret;
+    register long rax asm("rax") = number;
+    register long rdi asm("rdi") = arg1;
+    register long rsi asm("rsi") = arg2;
+    register long rdx asm("rdx") = arg3;
+    register long r10 asm("r10") = arg4;
+    register long r8  asm("r8")  = arg5;
+    register long r9  asm("r9")  = arg6;
     asm volatile (
-        "movq %1, %%rax\n"
-        "movq %2, %%rdi\n"
-        "movq %3, %%rsi\n"
-        "movq %4, %%rdx\n"
-        "movq %5, %%r10\n"
-        "movq %6, %%r8\n"
-        "movq %7, %%r9\n"
-        "syscall\n"
-        "movq %%rax, %0\n"
-        : "=r"(ret)
-        : "r"(number), "r"(arg1), "r"(arg2), "r"(arg3), "r"(arg4), "r"(arg5), "r"(arg6)
-        : "memory", "rax", "rdi", "rsi", "rdx", "r10", "r8
+        "syscall"
+        : "+r"(rax)
+        : "r"(rdi), "r"(rsi), "r"(rdx), "r"(r10), "r"(r8), "r"(r9)
+        : "rcx", "r11", "memory"
     );
-    return ret;
+    return rax;
 }
 */

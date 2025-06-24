@@ -15,6 +15,6 @@ int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
 long read(int fd, void *buf, unsigned long count);
 long write(int fd, const void *buf, unsigned long count);
 int close(int fd);
-void _exit(int status);
+__attribute__((noreturn)) void _exit(int status);
 
 #endif
