@@ -115,6 +115,7 @@ char *get_body_token_if_exists(char *very_start_buf, char *buf, size_t request_s
     }
     ++(*token_offset);
   }
+  return very_start_buf + end;
 }
 
 int parse_request_with_sizes(char *request_str, size_t request_str_len, http_parse_token_t *tokens, size_t *num_tokens) {
@@ -128,7 +129,10 @@ int parse_request_with_sizes(char *request_str, size_t request_str_len, http_par
   size_t token_offset = 0;
 
   for (int i = 0; i < num_separators; i++) {
-    http_parse_token_t *token_to_fill = bounds_check_lookup_token(tokens, i, *num_tokens);
+    http_parse_token_t *token_to_fill = NULL;
+    if (tokens) {
+      token_to_fill = bounds_check_lookup_token(tokens, i, *num_tokens);
+    }
     cur = chomp_and_get_token(cur, separators[i], cur - request_str, token_types[i], token_to_fill);
     if (!cur) return -1;
     ++token_offset;

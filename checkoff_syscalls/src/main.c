@@ -1,5 +1,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
+
 #include "syscall.h"
 #include "mystdlib.h"
 #include "my_http_request.h"
@@ -144,7 +145,12 @@ void _start() {
         char protocol[MAX_HTTP_PROTOCOL_LENGTH + 1];
 
         http_parse_token_t tokens[MAX_NUM_TOKENS];
-        size_t num_tokens;
+        for (int i = 0; i < MAX_NUM_TOKENS; i++) {
+          tokens[i].start = 0;
+          tokens[i].end = 0;
+          tokens[i].type = HTTP_UNDEFINED;
+        }
+        size_t num_tokens = MAX_NUM_TOKENS;
 
         int ret = parse_request_with_sizes(buffer, my_strlen(buffer), NULL, &num_tokens);
         if (ret != 0) {
@@ -167,16 +173,27 @@ void _start() {
         }
         */
         request_header_t request_headers[MAX_NUM_HEADERS];
-        for (int i = 0; i < ENUM_COUNT(HEADER) - 2; i++) {
+        for (int i = 0; i < MAX_NUM_HEADERS; i++) {
           // initialize the categorized headers to empty
           request_header_t empty_header;
+          empty_header.key.start = 0;
+          empty_header.key.end = 0;
+          empty_header.key.type = HTTP_UNDEFINED;
+          empty_header.value.start = 0;
+          empty_header.value.end = 0;
+          empty_header.value.type = HTTP_UNDEFINED;
           empty_header.type = HEADER_EMPTY;
           request_headers[i] = empty_header;
         }
 
         request_t request;
         // intialize fields to zero
-        http_parse_token_t undefined_token = {0, 0, HTTP_UNDEFINED};
+
+        http_parse_token_t undefined_token;
+        undefined_token.start = 0;
+        undefined_token.end = 0;
+        undefined_token.type = HTTP_UNDEFINED;
+
         request.body = undefined_token;
 
         request.headers = request_headers;
