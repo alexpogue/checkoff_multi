@@ -1,0 +1,71 @@
+FROM alexpogue/checkoff_python_base:latest AS builder
+
+COPY requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+COPY standalone.py .
+COPY ./checkoff_python ./checkoff_python
+
+RUN pip install pyoxidizer
+COPY pyoxidizer.bzl .
+
+COPY dockerc_files/ca_certs/ ./custom_certs
+COPY add_ca_certs.sh ./
+RUN ./add_ca_certs.sh && update-ca-certificates
+
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+ENV REQWEST_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+
+RUN ls /etc/ssl/certs
+
+RUN openssl verify -CAfile /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/agps_api_certs.pem
+
+RUN grep -A10 "mUZH1T8lzYtuZy0ZPirxmtsk3135+CKNa2OCAhhFjE0xd" /etc/ssl/certs/ca-certificates.crt || echo "Zscaler cert not found!"
+
+#RUN pyoxidizer build
+ENTRYPOINT ["sleep", "1d"]
+
+
+
+
+
+# NOTE: broke when I tried to exclude email, xml, distutils, importlib.metadata, maybe others
+#RUN python3.13 -OO -m PyInstaller --onefile --add-data "checkoff_python/config.py:checkoff_python" \
+#  --exclude-module tkinter \
+#  --exclude-module test \
+#  --exclude-module doctest \
+#  --exclude-module unittest \
+#  --exclude-module pydoc \
+#  --exclude-module asyncio \
+#  --exclude-module concurrent \
+#  --exclude-module http.server \
+#  --exclude-module xmlrpc \
+#  --exclude-module urllib.robotparser \
+#  --exclude-module wsgiref \
+#  --exclude-module html \
+#  --exclude-module curses \
+#  --exclude-module lib2to3 \
+#  --exclude-module ensurepip \
+#  --exclude-module venv \
+#  --exclude-module turtle \
+#  --exclude-module multiprocessing.dummy \
+#  --exclude-module multiprocessing \
+#  --exclude-module pdb \
+#  --exclude-module zoneinfo \
+#  --exclude-module bz2 \
+#  --exclude-module lzma \
+#  --exclude-module gzip \
+#  --exclude-module sqlite3 \
+#  --exclude-module idlelib \
+#  --exclude-module pkg_resources \
+#  --exclude-module email.mime \
+#  --exclude-module xml.etree \
+#  --exclude-module email.contentmanager \
+#  standalone.py
+
+#WORKDIR /app/dist
+#RUN python3.13 -OO -m staticx --strip standalone standalone_app
+
+ENTRYPOINT ["sleep", "1d"]
+

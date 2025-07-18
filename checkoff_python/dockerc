@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+. dockerc_files/dockerc_conf.sh
+
+if [ -n "$ZSCALER_CERT_DIR" ]; then
+  TEMP_CERTS_DIR="dockerc_files/ca_certs"
+
+  # Only copy if cert directory exists and is non-empty
+  if [ -d "$ZSCALER_CERT_DIR" ] && [ "$(ls -A "$ZSCALER_CERT_DIR")" ]; then
+    mkdir -p "$TEMP_CERTS_DIR"
+
+    trap 'find "$TEMP_CERTS_DIR" ! -name ".keep" -type f -delete' EXIT
+
+    # Use rsync to avoid unnecessary changes
+    rsync -a --checksum "$ZSCALER_CERT_DIR/" "$TEMP_CERTS_DIR/"
+  fi
+fi
+
+docker $@
