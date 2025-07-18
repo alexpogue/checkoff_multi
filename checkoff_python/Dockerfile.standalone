@@ -65,7 +65,6 @@ ENV PYTHONMALLOC=mimalloc
 COPY --from=builder /app/passwd_nonroot /etc/passwd
 COPY --from=builder --chown=nonroot /app/dist/standalone_app standalone_app
 COPY --from=builder --chown=nonroot /app/emptytmp /tmp
-COPY --from=builder --chown=nonroot /app/caching_sha2_password.so /usr/lib/x86_64-linux-gnu/libmariadb3/plugin/caching_sha2_password.so
 
 USER nonroot
 

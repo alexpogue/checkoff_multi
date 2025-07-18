@@ -14,6 +14,8 @@ MySql database needed. Use this tutorial to get mysql database running on localh
 in mysql command line exec, run:
 
 `create database checkoff_py;` # Create database
+`ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY 'strong_password';` # to enable login without requiring cryptography library in python
+`FLUSH PRIVILEGES;`
 `quit` # quit mysql
 `ctrl-D` # leave docker shell
 
