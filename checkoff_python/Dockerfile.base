@@ -6,14 +6,12 @@ USER root
 
 # general requirements: wget
 # patchelf requirements: autotools-dev automake build-essential autoconf
-# mysql requirements: python3-dev (included in base image) default-libmysqlclient-dev build-essential pkg-config
 # keep after install for builder steps:
-#   apt-get: default-libmysqlclient-dev binutils
-#   pip: mysqlclient==2.2.7
-#      - because we need apt-get packages to pip install it
-#      - we decrease final build time at the expense of base image size
+#   apt-get: binutils
+#   pip: pyinstaller staticx
+
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends wget autotools-dev automake build-essential autoconf default-libmysqlclient-dev pkg-config binutils && \
+    apt-get install -y --no-install-recommends wget autotools-dev automake build-essential autoconf binutils && \
     wget --no-check-certificate https://github.com/NixOS/patchelf/archive/0.10.tar.gz && \
     tar xzf 0.10.tar.gz && \
     cd patchelf-0.10/ && \
@@ -24,7 +22,6 @@ RUN apt-get update && \
     make install && \
     cd - && \
     pip install --upgrade pip && \
-    pip install pyinstaller staticx mysqlclient==2.2.7 && \
-    cp /usr/lib/x86_64-linux-gnu/libmariadb3/plugin/caching_sha2_password.so /app && \
+    pip install pyinstaller staticx && \
     apt-get remove --purge -y wget autotools-dev automake build-essential autoconf && \
     apt-get autoremove -y && apt-get clean
